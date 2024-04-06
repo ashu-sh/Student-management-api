@@ -2,7 +2,9 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { Schema } = mongoose;
+const Task = require("./SchemaModel/Tasks");
+const User = require('./SchemaModel/Users'); 
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,25 +18,6 @@ app.use(cors());
 mongoose.connect(
   "mongodb+srv://ashutosh_shinde:fV6V3ySkK8bRJSCJ@cluster0.ffixaew.mongodb.net/Studentmanagementsystem?retryWrites=true&w=majority"
 );
-const UserSchema = new Schema({
-  email: { type: String, unique: true, required: true },
-  password: { type: String, required: true },
-  role: { type: String, required: true },
-});
-
-const TaskSchema = new Schema({
-  description: { type: String, required: true },
-  dueTime: { type: Date, required: true },
-  status: {
-    type: String,
-    enum: ["pending", "completed", "overdue"],
-    default: "pending",
-  },
-  assignedTo: { type: String, ref: "User" },
-});
-
-const User = mongoose.model("User", UserSchema);
-const Task = mongoose.model("Task", TaskSchema);
 
 app.use(express.json());
 
