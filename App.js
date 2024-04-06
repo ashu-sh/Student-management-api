@@ -6,7 +6,12 @@ const { Schema } = mongoose;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SECRET_KEY = "secretkey"; // Replace with a secure secret key
+const SECRET_KEY = "secretkey";
+
+const cors = require("cors");
+
+app.use(express.json());
+app.use(cors());
 
 mongoose.connect(
   "mongodb+srv://ashutosh_shinde:fV6V3ySkK8bRJSCJ@cluster0.ffixaew.mongodb.net/Studentmanagementsystem?retryWrites=true&w=majority"
@@ -25,7 +30,7 @@ const TaskSchema = new Schema({
     enum: ["pending", "completed", "overdue"],
     default: "pending",
   },
-  assignedTo: { type: Schema.Types.ObjectId, ref: "User" },
+  assignedTo: { type: String, ref: "User" },
 });
 
 const User = mongoose.model("User", UserSchema);
@@ -52,10 +57,10 @@ app.use(express.json());
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
   const token = req.header("Authorization");
-  if (!token) return res.status(401).send("Access denied");
+  if (!token) return res.status(401).send({ message: "Access denied" });
 
   jwt.verify(token, SECRET_KEY, (err, user) => {
-    if (err) return res.status(403).send("Invalid token");
+    if (err) return res.status(403).send({ message: "Invalid token" });
     req.user = user;
     next();
   });
@@ -67,7 +72,7 @@ app.post("/student/login", async (req, res) => {
 
   const user = await User.findOne({ email });
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).send("Invalid email or password");
+    return res.status(401).send({ message: "Invalid email or password" });
   }
 
   const token = jwt.sign({ email: user.email, role: user.role }, SECRET_KEY);
@@ -105,7 +110,7 @@ app.post("/admin/add-student", authenticateToken, async (req, res) => {
     await student.save();
     res.status(201).json(student);
   } catch (error) {
-    res.status(500).send("Error adding student");
+    res.status(500).send({ message: "Error adding student" });
   }
 });
 
@@ -118,14 +123,14 @@ app.post("/admin/assign-task", authenticateToken, async (req, res) => {
     if (!student) {
       return res
         .status(404)
-        .send("Student not found or not assigned as a student");
+        .send({ message: "Student not found or not assigned as a student" });
     }
 
     const task = new Task({ description, dueTime, assignedTo: student._id });
     await task.save();
     res.status(201).json(task);
   } catch (error) {
-    res.status(500).send("Error assigning task");
+    res.status(500).send({ message: "Error assigning task" });
   }
 });
 
@@ -134,26 +139,42 @@ app.get("/admin/students", authenticateToken, async (req, res) => {
     const students = await User.find({ role: "student" }, { password: 0 });
     res.json(students);
   } catch (error) {
-    res.status(500).send("Error fetching students");
+    res.status(500).send({ message: "Error fetching students" });
   }
 });
 
 app.get("/admin/tasks", authenticateToken, async (req, res) => {
   try {
-    const tasks = await Task.find().populate("assignedTo", "name email");
+    const tasks = await Task.find().populate("assignedTo", "email");
     res.json(tasks);
   } catch (error) {
-    res.status(500).send("Error fetching tasks");
+    res.status(500).send({ message: "Error fetching tasks" });
   }
 });
 
 // Student interface endpoints
+// Student endpoint to get their tasks by email
 app.get("/student/tasks", authenticateToken, async (req, res) => {
+  if (req.user.role !== "student") {
+    return res.status(403).json({ message: "Permission denied" });
+  }
+
+  const { email } = req.user;
+
   try {
-    const tasks = await Task.find().populate("assignedTo", "name email");
+    const student = await User.findOne({ email, role: "student" });
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const tasks = await Task.find({ assignedTo: student._id }).populate(
+      "assignedTo",
+      "email"
+    );
     res.json(tasks);
+    console.log(tasks);
   } catch (error) {
-    res.status(500).send("Error fetching tasks");
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -166,14 +187,14 @@ app.patch(
 
     try {
       const task = await Task.findById(taskId);
-      if (!task) return res.status(404).send("Task not found");
+      if (!task) return res.status(404).send({ message: "Task not found" });
 
       task.status = status;
       await task.save();
 
       res.json(task);
     } catch (error) {
-      res.status(500).send("Error updating task");
+      res.status(500).send({ message: "Error updating task" });
     }
   }
 );
