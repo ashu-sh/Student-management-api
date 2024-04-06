@@ -23,6 +23,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 
+// Route Handlers
 router.post("/student/login", async (req, res) => {
     const { email, password } = req.body;
   
@@ -34,6 +35,7 @@ router.post("/student/login", async (req, res) => {
     const token = jwt.sign({ email: user.email, role: user.role }, SECRET_KEY);
     res.json({ token });
 });
+
 
 router.get("/student/tasks", authenticateToken, async (req, res) => {
     if (req.user.role !== "student") {
@@ -59,10 +61,8 @@ router.get("/student/tasks", authenticateToken, async (req, res) => {
     }
 });
   
-router.patch(
-    "/student/update-task/:taskId",
-    authenticateToken,
-    async (req, res) => {
+
+router.patch("/student/update-task/:taskId",authenticateToken, async (req, res) => {
       const { status } = req.body;
       const { taskId } = req.params;
   

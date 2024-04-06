@@ -39,6 +39,8 @@ const authenticateToken = (req, res, next) => {
 })();
   
 
+
+// Route Handlers
 router.post("/admin/login", async (req, res) => {
     const { email, password } = req.body;
     const admin = await User.findOne({ email, role: "admin" });
@@ -53,6 +55,7 @@ router.post("/admin/login", async (req, res) => {
     res.json({ token });
 });
   
+
 router.post("/admin/add-student", authenticateToken, async (req, res) => {
     const { name, email, department, password } = req.body;
   
@@ -73,6 +76,7 @@ router.post("/admin/add-student", authenticateToken, async (req, res) => {
     }
 });
   
+
 router.post("/admin/assign-task", authenticateToken, async (req, res) => {
     const { description, dueTime, assignedTo } = req.body;
   
@@ -93,6 +97,7 @@ router.post("/admin/assign-task", authenticateToken, async (req, res) => {
     }
 });
   
+
 router.get("/admin/students", authenticateToken, async (req, res) => {
     try {
       const students = await User.find({ role: "student" }, { password: 0 });
@@ -102,6 +107,7 @@ router.get("/admin/students", authenticateToken, async (req, res) => {
     }
 });
   
+
 router.get("/admin/tasks", authenticateToken, async (req, res) => {
     try {
       const tasks = await Task.find().populate("assignedTo", "email");
